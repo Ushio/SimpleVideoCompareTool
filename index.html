@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>SimpleImageCompareTool2</title>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="demo.css">
+
+  <link rel="stylesheet" href="BeerSlider.unmin.css">
+  <script src="BeerSlider.unmin.js"></script>
+
+  <script src="jquery-3.3.1.min.js"></script>
+  <script src="jquery.event.move.js"></script>
+
+  <style>
+      .dragover {
+          background:rgb(193, 225, 255);
+      }
+      .boxspan {
+        display: inline-block;
+        width: 100%;
+        text-align: center;
+        line-height:50px;
+      }
+      </style>
+</head>
+<body>
+
+  <div style="margin: 10px;">
+      <div style="width: 100%; display: flex; ">
+          <div id="drop-zoneL" style="height: 50px; width: 100%; border: thin solid #888888;"><span class="boxspan">Left Image (Drag Here)</span></div>
+          <div style="width: 20px;"></div>
+          <div id="drop-zoneR" style="height: 50px; width: 100%; border: thin solid #888888;"><span class="boxspan">Right Image (Drag Here)</span></div>
+      </div>
+  </div>
+  <div class="container">
+    <div id="slider" class="beer-slider" data-beer-label=dogs-after.jpg style="border: 1px solid #000000;">
+      <img src="dogs-after.jpg" alt="Original man holding beer" id="RHSImage">
+      <div class="beer-reveal" data-beer-label="dogs-before.jpg" id="BeforeLabel">
+        <img src="dogs-before.jpg" alt="Processed with logo and Lightroom presets" id="LHSImage">
+      </div>
+    </div>
+  </div>
+
+  <script>
+    beer = new BeerSlider( document.getElementById( "slider" ) ); 
+    
+    var dragoverHandler = function(e){
+        e.preventDefault();
+        $(this).addClass("dragover");
+    };
+    $("#drop-zoneL").on("dragover", dragoverHandler);
+    $("#drop-zoneR").on("dragover", dragoverHandler);
+
+    var dragleaveHandler = function(e){
+        e.preventDefault();
+        $(this).removeClass("dragover");
+    };
+    $("#drop-zoneL").on("dragleave", dragleaveHandler);
+    $("#drop-zoneR").on("dragleave", dragleaveHandler);
+    
+    var handleDrop = function(e, selector_image, selector_label) {
+        e.preventDefault();
+
+        var file = e.originalEvent.dataTransfer.files[0];
+        var reader = new FileReader();
+        reader.onload = function(event) {
+          $(selector_image).attr("src", event.target.result);
+          $(selector_label).attr("data-beer-label", file.name);
+        }
+        reader.readAsDataURL(file);
+
+        beer.init();
+    };
+    $("#drop-zoneL").on("drop", function(e) {
+        $(this).removeClass("dragover");
+        handleDrop(e, "#LHSImage", "#BeforeLabel");
+    });
+    $("#drop-zoneR").on("drop", function(e) {
+        $(this).removeClass("dragover");
+        handleDrop(e, "#RHSImage", "#slider");
+    });
+  </script>
+</body>
+</html>
