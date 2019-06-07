@@ -64,12 +64,12 @@
         var file = e.originalEvent.dataTransfer.files[0];
         var reader = new FileReader();
         reader.onload = function(event) {
+          $(selector_image).unbind("load");
+          $(selector_image).bind('load', function(){
+            beer.init();
+          });
           $(selector_image).attr("src", event.target.result);
           $(selector_label).attr("data-beer-label", file.name);
-
-          setTimeout(function () {
-            beer.init();
-          }, 100);
         }
         reader.readAsDataURL(file);
     };
