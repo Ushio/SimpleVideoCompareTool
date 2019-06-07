@@ -66,10 +66,12 @@
         reader.onload = function(event) {
           $(selector_image).attr("src", event.target.result);
           $(selector_label).attr("data-beer-label", file.name);
+
+          setTimeout(function () {
+            beer.init();
+          }, 100);
         }
         reader.readAsDataURL(file);
-
-        beer.init();
     };
     $("#drop-zoneL").on("drop", function(e) {
         $(this).removeClass("dragover");
