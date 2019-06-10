@@ -41,6 +41,13 @@
     </div>
   </div>
 
+  <div style="margin:10px; padding:10px; border:1px solid black;">
+  <p>
+    <input type="checkbox" name="hide" value="0" onchange="didChangeHideHandle(this.checked)">Hide Handle <br>
+    <button type="button" onclick="flipLR()">Flip L R</button>
+  </p>
+  </div>
+
   <script>
     beer = new BeerSlider( document.getElementById( "slider" ) ); 
     
@@ -73,15 +80,35 @@
         }
         reader.readAsDataURL(file);
     };
+
+    var selector_image_L = "#LHSImage";
+    var selector_image_R = "#RHSImage";
+    var selector_label_L = "#BeforeLabel";
+    var selector_label_R = "#slider";
+
     $("#drop-zoneL").on("drop", function(e) {
         $(this).removeClass("dragover");
-        handleDrop(e, "#LHSImage", "#BeforeLabel");
+        handleDrop(e, selector_image_L, selector_label_L);
     });
     $("#drop-zoneR").on("drop", function(e) {
         $(this).removeClass("dragover");
-        handleDrop(e, "#RHSImage", "#slider");
+        handleDrop(e, selector_image_R, selector_label_R);
     });
-  </script>
 
+    function didChangeHideHandle(value) {
+      $('.beer-handle').css('z-index', value ? -1 : 2);
+    }
+    function flipLR() {
+      var L = $(selector_image_L).attr("src");
+      var R = $(selector_image_R).attr("src");
+      $(selector_image_L).attr("src", R);
+      $(selector_image_R).attr("src", L);
+
+      var L_label = $(selector_label_L).attr("data-beer-label");
+      var R_label = $(selector_label_R).attr("data-beer-label");
+      $(selector_label_L).attr("data-beer-label", R_label);
+      $(selector_label_R).attr("data-beer-label", L_label);
+    }
+  </script>
 </body>
 </html>
