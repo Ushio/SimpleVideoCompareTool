@@ -43,7 +43,8 @@
 
   <div style="margin:10px; padding:10px; border:1px solid black;">
   <p>
-    <input type="checkbox" name="hide" value="0" onchange="didChangeHideHandle(this.checked)">Hide Handle <br>
+    <input type="checkbox" name="hide" value="0" onchange="didChangeHideHandle(this.checked)">Hide Handle<br>
+    <input type="checkbox" name="hide" value="0" onchange="didChangeDifferenceMode(this.checked)">Difference Mode<br>
     <button type="button" onclick="flipLR()">Flip L R</button>
   </p>
   </div>
@@ -97,6 +98,9 @@
 
     function didChangeHideHandle(value) {
       $('.beer-handle').css('z-index', value ? -1 : 2);
+    }
+    function didChangeDifferenceMode(value) {
+      $('.beer-reveal').css('mix-blend-mode', value ? "difference" : "unset");
     }
     function flipLR() {
       var L = $(selector_image_L).attr("src");
