@@ -9,6 +9,7 @@
 
   <script src="jquery-3.3.1.min.js"></script>
   <script src="jquery.event.move.js"></script>
+  <script src="mp4box.all.js"></script>
 
   <style>
       .dragover {
@@ -20,32 +21,56 @@
         text-align: center;
         line-height:50px;
       }
-      </style>
+      .videoItem {
+        flex: 1;
+        aspect-ratio: auto;
+        border: 1px solid black;
+      }
+</style>
 </head>
 <body>
 
   <div style="margin: 10px;">
       <div style="width: 100%; display: flex; ">
-          <div id="drop-zoneL" style="height: 50px; width: 100%; border: thin solid #888888;"><span class="boxspan">Left Image (Please drop your image here)</span></div>
+          <div id="drop-zoneL" style="height: 50px; width: 100%; border: thin solid #888888;"><span class="boxspan">Left Image (Please drop your video here)</span></div>
           <div style="width: 20px;"></div>
-          <div id="drop-zoneR" style="height: 50px; width: 100%; border: thin solid #888888;"><span class="boxspan">Right Image (Please drop your image here)</span></div>
+          <div id="drop-zoneR" style="height: 50px; width: 100%; border: thin solid #888888;"><span class="boxspan">Right Image (Please drop your video here)</span></div>
       </div>
   </div>
 
-  <div class="container" style="display: flex; justify-content: center; align-items: center;">
+  <div id="frameLabel">frame: 0</div>
+  <!-- <button type="button" id="buttonPlay" onclick="playSync()">Play</button>
+  <button type="button" id="buttonPlay" onclick="stopSync()">Stop</button> -->
+  <button type="button" id="buttonPrev" onclick="framePrev()">Prev</button>
+  <button type="button" id="buttonNext" onclick="frameNext()">Next</button>
+  <div style="height: 10px;"></div>
+  <!-- oninput="onSeekbarChange(this.value)" -->
+  <input type="range" min="0" max="100" value="0" id="seekbar" style="width: 100%" onchange="onSeekbarChange(this.value)" >
+
+  <button type="button" id="compare" onclick="compare()">compare</button>
+
+  <div style="height: 10px;"></div>
+  
+  <div class="container" style="display: flex;">
+    <video id="LHSImage" class="videoItem" style="width: 49%;"></video>
+    <video id="RHSImage" class="videoItem" style="width: 49%;"></video>
+  </div>
+
+  <div style="height: 10px;"></div>
+
+  <div class="compContainer" style="display: flex; justify-content: center; align-items: center; display: none;">
     <div id="slider" class="beer-slider" data-beer-label=dogs-after.jpg style="border: 1px solid #000000;">
-      <img src="dogs-after.jpg" alt="Original man holding beer" id="RHSImage">
+      <img src="dogs-after.jpg" alt="Original man holding beer" id="compR">
       <div class="beer-reveal" data-beer-label="dogs-before.jpg" id="BeforeLabel">
-        <img src="dogs-before.jpg" alt="Processed with logo and Lightroom presets" id="LHSImage">
+        <img src="dogs-before.jpg" alt="Processed with logo and Lightroom presets" id="compL">
       </div>
     </div>
   </div>
 
-  <div style="margin:10px; padding:10px; border:1px solid black;">
+  <div class="compContainer" style="margin:10px; padding:10px; border:1px solid black; display: none;">
   <p>
     <input type="checkbox" name="hide" value="0" onchange="didChangeHideHandle(this.checked)">Hide Handle<br>
     <input type="checkbox" name="hide" value="0" onchange="didChangeDifferenceMode(this.checked)">Difference Mode<br>
-    <button type="button" onclick="flipLR()">Flip L R</button>
   </p>
   </div>
 
@@ -66,34 +91,207 @@
     $("#drop-zoneL").on("dragleave", dragleaveHandler);
     $("#drop-zoneR").on("dragleave", dragleaveHandler);
     
-    var handleDrop = function(e, selector_image, selector_label) {
+    var image_L_idx = "LHSImage";
+    var image_R_idx = "RHSImage";
+
+    var videoFrames = 0;
+    var busyCounter = 0;
+    var currentFrame = 0;
+    var isPlaying = false;
+
+    var offScreenCanvas = document.createElement('canvas');
+
+    var handleDrop = function(e, image_idx, selector_label ) {
         e.preventDefault();
 
         var file = e.originalEvent.dataTransfer.files[0];
+
         var reader = new FileReader();
         reader.onload = function(event) {
-          $(selector_image).unbind("load");
-          $(selector_image).bind('load', function(){
-            beer.init();
-          });
-          $(selector_image).attr("src", event.target.result);
-          $(selector_label).attr("data-beer-label", file.name);
+          currentFrame = 0;
+
+          const video = document.getElementById(image_idx);
+          video.src = event.target.result;
+          video.load();
+          video.addEventListener('loadeddata', function() {
+            updateUI();
+          }, false);
         }
+        
         reader.readAsDataURL(file);
+
+        const arrayReader = new FileReader();
+        arrayReader.onload = function(e) {
+            const arrayBuffer = e.target.result;
+            const mp4box = new MP4Box.createFile();
+            mp4box.onReady = function(info) {
+                console.log('Metadata:', info);
+                videoFrames = info.tracks[0].nb_samples;
+            };
+            mp4box.onError = function(e) { console.log(e); };
+            arrayBuffer.fileStart = 0;
+            mp4box.appendBuffer((arrayBuffer));
+            mp4box.flush();
+        };
+        arrayReader.readAsArrayBuffer(file);
     };
 
-    var selector_image_L = "#LHSImage";
-    var selector_image_R = "#RHSImage";
+    function playSync()
+    {
+      const videoL = document.getElementById(image_L_idx);
+      const videoR = document.getElementById(image_R_idx);
+      videoL.play();
+      videoR.play();
+
+      isPlaying = true;
+    }
+
+    function refleshCurrentTime( video )
+    {
+      const step = video.duration / 3;
+      if( video.duration / 2 <= video.currentTime )
+      {
+        video.currentTime -= step;
+        video.currentTime += step;
+      }
+      else
+      {
+        video.currentTime += step;
+        video.currentTime -= step;
+      }
+    }
+
+    function video_seek( video, mediaTime, onSeekEnd, isFirst = true )
+    {
+      const duration = video.duration;
+      const deltaTime = duration / videoFrames;
+
+      if( isFirst )
+        video.currentTime = mediaTime + 0.01 /* magic number, somehow it is faster */;
+
+      refleshCurrentTime(video);
+      video.requestVideoFrameCallback( ( x, frame ) => {
+        console.log("seek " + video.currentTime);
+
+        if( Math.abs(mediaTime - frame.mediaTime) < 0.01 )
+        {
+          onSeekEnd();
+        }
+        else
+        {
+          if( frame.mediaTime < mediaTime )
+          {
+            video.currentTime += deltaTime;
+          }
+          else{
+            video.currentTime -= deltaTime;
+          }
+          video_seek( video, mediaTime, onSeekEnd, false );
+        }
+      });
+    }
+
+    // from UI
+    function framePrev()
+    {
+      busyCounter += 2;
+      updateUI();
+
+      const videoL = document.getElementById(image_L_idx);
+      const videoR = document.getElementById(image_R_idx);
+
+      const duration = videoL.duration;
+      const deltaTime = duration / videoFrames;
+      const nextFrame = currentFrame - 1;
+      // console.log( "currentFrame: " + currentFrame);
+      // console.log( "nextFrame   : " + nextFrame);
+      // console.log( "curT        : " + videoL.currentTime);
+      // console.log( "nextT       : " + nextFrame * deltaTime);
+      video_seek( videoR, nextFrame * deltaTime, () =>{ currentFrame = nextFrame; busyCounter--; updateUI(); });
+      video_seek( videoL, nextFrame * deltaTime, () =>{ busyCounter--; updateUI(); });
+    }
+    function frameNext()
+    {
+      busyCounter += 2;
+      updateUI();
+
+      const videoL = document.getElementById(image_L_idx);
+      const videoR = document.getElementById(image_R_idx);
+
+      const duration = videoL.duration;
+      const deltaTime = duration / videoFrames;
+      const nextFrame = currentFrame + 1;
+      video_seek( videoR, nextFrame * deltaTime, () =>{ currentFrame = nextFrame; busyCounter--; updateUI(); });
+      video_seek( videoL, nextFrame * deltaTime, () =>{ busyCounter--; updateUI(); });
+    }
+
+    var isQuerying = false;
+    const tick = () => {
+      const videoL = document.getElementById(image_L_idx);
+      if( isQuerying == false )
+      {
+        isQuerying = true;
+
+        videoL.requestVideoFrameCallback( ( x, frame ) => {
+          if( busyCounter == 0 )
+          {
+            const baseTime = frame.mediaTime;
+            const duration = videoL.duration;
+            const deltaTime = duration / videoFrames;
+            const frameNumber = Math.round(baseTime / deltaTime);
+            
+            const slider = document.getElementById("seekbar");
+            slider.max = Math.round(duration / deltaTime) - 1;
+            slider.value = frameNumber;
+
+            currentFrame = frameNumber;
+
+            updateUI(); 
+          }
+
+          isQuerying = false;
+        });
+      }
+      requestAnimationFrame(tick);
+    }
+    tick();
+
+    function onSeekbarChange( value )
+    {
+      busyCounter++;
+      updateUI();
+
+      const videoL = document.getElementById(image_L_idx);
+      const videoR = document.getElementById(image_R_idx);
+      const duration = videoL.duration;
+      const deltaTime = duration / videoFrames;
+      videoL.currentTime = deltaTime * value;
+
+      refleshCurrentTime(videoL);
+      videoL.requestVideoFrameCallback( ( x, frame ) => {
+        const baseTime = frame.mediaTime;
+        const duration = videoL.duration;
+        const deltaTime = duration / videoFrames;
+        const frameNumber = Math.round(baseTime / deltaTime);
+        currentFrame = frameNumber;
+
+        video_seek( videoR, baseTime, () => {
+          console.log("seekend" + busyCounter);
+          busyCounter--; updateUI();
+        });
+      });
+    }
+
     var selector_label_L = "#BeforeLabel";
     var selector_label_R = "#slider";
 
     $("#drop-zoneL").on("drop", function(e) {
         $(this).removeClass("dragover");
-        handleDrop(e, selector_image_L, selector_label_L);
+        handleDrop(e, image_L_idx, selector_label_L);
     });
     $("#drop-zoneR").on("drop", function(e) {
         $(this).removeClass("dragover");
-        handleDrop(e, selector_image_R, selector_label_R);
+        handleDrop(e, image_R_idx, selector_label_R);
     });
 
     function didChangeHideHandle(value) {
@@ -102,17 +300,70 @@
     function didChangeDifferenceMode(value) {
       $('.beer-reveal').css('mix-blend-mode', value ? "difference" : "unset");
     }
-    function flipLR() {
-      var L = $(selector_image_L).attr("src");
-      var R = $(selector_image_R).attr("src");
-      $(selector_image_L).attr("src", R);
-      $(selector_image_R).attr("src", L);
 
-      var L_label = $(selector_label_L).attr("data-beer-label");
-      var R_label = $(selector_label_R).attr("data-beer-label");
-      $(selector_label_L).attr("data-beer-label", R_label);
-      $(selector_label_R).attr("data-beer-label", L_label);
+    $("#compare").prop('disabled', true);
+    $("#buttonPrev").prop('disabled', true);
+    $("#buttonNext").prop('disabled', true);
+
+    function updateUI()
+    {
+      const videoL = document.getElementById(image_L_idx);
+      const videoR = document.getElementById(image_R_idx);
+      const hasVideo = videoL.videoWidth > 0 && videoR.videoWidth > 0;
+
+      const isBusy = busyCounter !== 0 || hasVideo === false;
+      // $("#buttonPlay").prop('disabled', isBusy);
+      $("#buttonPrev").prop('disabled', isBusy);
+      $("#buttonNext").prop('disabled', isBusy);
+      $("#frameLabel").html("frame: " + currentFrame);
+
+
+      if( hasVideo )
+      {
+        $("#compare").prop('disabled', false);
+      }
     }
+    
+    function compare()
+    {
+      $(".compContainer").css('display', '');
+
+      const videoL = document.getElementById(image_L_idx);
+      const videoR = document.getElementById(image_R_idx);
+
+      offScreenCanvas.width = videoL.videoWidth;
+      offScreenCanvas.height = videoL.videoHeight;
+      const context = offScreenCanvas.getContext("2d");
+      context.drawImage(videoL, 0, 0, offScreenCanvas.width, offScreenCanvas.height);
+      const imageL = offScreenCanvas.toDataURL('image/png');
+
+      $("#compL").unbind("load");
+      $("#compL").bind('load', function(){
+        beer.init();
+      });
+      $("#compL").attr("src", imageL);
+      // $(selector_label).attr("data-beer-label", file.name);
+
+      context.drawImage(videoR, 0, 0, offScreenCanvas.width, offScreenCanvas.height);
+      const imageR = offScreenCanvas.toDataURL('image/png');
+      $("#compR").unbind("load");
+      $("#compR").bind('load', function(){
+        beer.init();
+      });
+      $("#compR").attr("src", imageR);
+    }
+
+    // function flipLR() {
+    //   var L = $(selector_image_L).attr("src");
+    //   var R = $(selector_image_R).attr("src");
+    //   $(selector_image_L).attr("src", R);
+    //   $(selector_image_R).attr("src", L);
+
+    //   var L_label = $(selector_label_L).attr("data-beer-label");
+    //   var R_label = $(selector_label_R).attr("data-beer-label");
+    //   $(selector_label_L).attr("data-beer-label", R_label);
+    //   $(selector_label_R).attr("data-beer-label", L_label);
+    // }
   </script>
 </body>
 </html>
