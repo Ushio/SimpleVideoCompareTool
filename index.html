@@ -261,7 +261,13 @@
       // console.log( "nextFrame   : " + nextFrame);
       // console.log( "curT        : " + videoL.currentTime);
       // console.log( "nextT       : " + nextFrame * deltaTime);
-      video_seek( videoR, nextFrame * deltaTime, () =>{ currentFrame = nextFrame; busyCounter--; updateUI(); });
+      video_seek( videoR, nextFrame * deltaTime, () =>{ 
+        const slider = document.getElementById("seekbar");
+        slider.max = Math.round(duration / deltaTime) - 1;
+        slider.value = nextFrame;
+
+        currentFrame = nextFrame; busyCounter--; updateUI(); 
+      });
       video_seek( videoL, nextFrame * deltaTime, () =>{ busyCounter--; updateUI(); });
     }
     function frameNext()
@@ -282,7 +288,12 @@
       // console.log( "nextFrame   : " + nextFrame);
       // console.log( "curT        : " + videoL.currentTime);
       // console.log( "nextT       : " + nextFrame * deltaTime);
-      video_seek( videoR, nextFrame * deltaTime, () =>{ currentFrame = nextFrame; busyCounter--; updateUI(); });
+      video_seek( videoR, nextFrame * deltaTime, () =>{ 
+        const slider = document.getElementById("seekbar");
+        slider.max = Math.round(duration / deltaTime) - 1;
+        slider.value = nextFrame;
+        currentFrame = nextFrame; busyCounter--; updateUI(); 
+      });
       video_seek( videoL, nextFrame * deltaTime, () =>{ busyCounter--; updateUI(); });
     }
 
