@@ -39,6 +39,13 @@
   </div>
 
   <div id="frameLabel">frame: 0</div>
+    <label for="playbackSpeed">Speed:</label>
+    <select id="playbackSpeed" name="playbackSpeed">
+      <option value="100%">100%</option>
+      <option value="50%">50%</option>
+      <option value="33%">33%</option>
+      <option value="10%">10%</option>
+    </select>
   <button type="button" id="buttonPlay" style="height: 30px;" onclick="playSync()">Play</button>
   <button type="button" id="buttonStop" style="height: 30px;" onclick="stopSync()">Stop</button>
   <button type="button" id="buttonPrev" style="height: 30px;" onclick="framePrev()">&lt;= Prev</button>
@@ -141,8 +148,14 @@
 
     function playSync()
     {
+      const playbackSpeed = $('[name="playbackSpeed"] option:selected').val();
+      const rate = parseInt(playbackSpeed) / 100.0
+
       const videoL = document.getElementById(image_L_idx);
       const videoR = document.getElementById(image_R_idx);
+      videoL.playbackRate = rate;
+      videoR.playbackRate = rate;
+
       videoL.play().then(() => {
         playingCount++;
         updateUI();
