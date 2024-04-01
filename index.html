@@ -40,7 +40,7 @@
 
   <div id="frameLabel">frame: 0</div>
     <label for="playbackSpeed">Speed:</label>
-    <select id="playbackSpeed" name="playbackSpeed">
+    <select id="playbackSpeed" name="playbackSpeed" onchange="onPlaybackSpeedChange();">
       <option value="100%">100%</option>
       <option value="50%">50%</option>
       <option value="33%">33%</option>
@@ -145,8 +145,7 @@
         };
         arrayReader.readAsArrayBuffer(file);
     };
-
-    function playSync()
+    function onPlaybackSpeedChange()
     {
       const playbackSpeed = $('[name="playbackSpeed"] option:selected').val();
       const rate = parseInt(playbackSpeed) / 100.0
@@ -155,6 +154,14 @@
       const videoR = document.getElementById(image_R_idx);
       videoL.playbackRate = rate;
       videoR.playbackRate = rate;
+    }
+
+    function playSync()
+    {
+      onPlaybackSpeedChange(); // update rate
+
+      const videoL = document.getElementById(image_L_idx);
+      const videoR = document.getElementById(image_R_idx);
 
       videoL.play().then(() => {
         playingCount++;
