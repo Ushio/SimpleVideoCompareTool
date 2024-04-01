@@ -39,8 +39,8 @@
   </div>
 
   <div id="frameLabel">frame: 0</div>
-  <!-- <button type="button" id="buttonPlay" onclick="playSync()">Play</button>
-  <button type="button" id="buttonPlay" onclick="stopSync()">Stop</button> -->
+  <button type="button" id="buttonPlay" onclick="playSync()">Play</button>
+  <button type="button" id="buttonStop" onclick="stopSync()">Stop</button>
   <button type="button" id="buttonPrev" onclick="framePrev()">Prev</button>
   <button type="button" id="buttonNext" onclick="frameNext()">Next</button>
   <div style="height: 10px;"></div>
@@ -97,7 +97,7 @@
     var videoFrames = 0;
     var busyCounter = 0;
     var currentFrame = 0;
-    var isPlaying = false;
+    var playingCount = 0;
 
     var offScreenCanvas = document.createElement('canvas');
 
@@ -112,6 +112,7 @@
 
           const video = document.getElementById(image_idx);
           video.src = event.target.result;
+          video.onended = onVideoEnd;
           video.load();
           video.addEventListener('loadeddata', function() {
             updateUI();
@@ -140,10 +141,58 @@
     {
       const videoL = document.getElementById(image_L_idx);
       const videoR = document.getElementById(image_R_idx);
-      videoL.play();
-      videoR.play();
+      videoL.play().then(() => {
+        playingCount++;
+        updateUI();
+      },(e) => {
+        
+      });
+      videoR.play().then(() => {
+        playingCount++;
+        updateUI();
+      },(e) => {
+        console.log("e");
+      });
+    }
+    function stopSync()
+    {
+      const videoL = document.getElementById(image_L_idx);
+      const videoR = document.getElementById(image_R_idx);
 
-      isPlaying = true;
+      busyCounter++;
+      updateUI();
+
+      setTimeout(function() {
+        playingCount = 0;
+
+        refleshCurrentTime(videoL);
+        videoL.requestVideoFrameCallback( ( x, frame ) => {
+          const baseTime = frame.mediaTime;
+          const duration = videoL.duration;
+          const deltaTime = duration / videoFrames;
+          const frameNumber = Math.round(baseTime / deltaTime);
+          currentFrame = frameNumber;
+
+          video_seek( videoR, baseTime, () => {
+            busyCounter--; 
+            updateUI();
+          });
+        });
+        videoL.onpause = null;
+      }, 100);
+      
+      videoL.pause();
+      videoR.pause();
+    }
+
+    function onVideoEnd()
+    {
+      playingCount--;
+
+      if( playingCount == 0 )
+      {
+        setTimeout(playSync, 100);
+      }
     }
 
     function refleshCurrentTime( video )
@@ -194,15 +243,18 @@
     // from UI
     function framePrev()
     {
-      busyCounter += 2;
-      updateUI();
-
       const videoL = document.getElementById(image_L_idx);
       const videoR = document.getElementById(image_R_idx);
 
       const duration = videoL.duration;
       const deltaTime = duration / videoFrames;
       const nextFrame = currentFrame - 1;
+      if( nextFrame < 0 )
+        return;
+      
+      busyCounter += 2;
+      updateUI();
+
       // console.log( "currentFrame: " + currentFrame);
       // console.log( "nextFrame   : " + nextFrame);
       // console.log( "curT        : " + videoL.currentTime);
@@ -212,15 +264,22 @@
     }
     function frameNext()
     {
-      busyCounter += 2;
-      updateUI();
-
       const videoL = document.getElementById(image_L_idx);
       const videoR = document.getElementById(image_R_idx);
 
       const duration = videoL.duration;
       const deltaTime = duration / videoFrames;
       const nextFrame = currentFrame + 1;
+      if( videoFrames <= nextFrame )
+        return;
+      
+      busyCounter += 2;
+      updateUI();
+
+      // console.log( "currentFrame: " + currentFrame);
+      // console.log( "nextFrame   : " + nextFrame);
+      // console.log( "curT        : " + videoL.currentTime);
+      // console.log( "nextT       : " + nextFrame * deltaTime);
       video_seek( videoR, nextFrame * deltaTime, () =>{ currentFrame = nextFrame; busyCounter--; updateUI(); });
       video_seek( videoL, nextFrame * deltaTime, () =>{ busyCounter--; updateUI(); });
     }
@@ -302,6 +361,8 @@
     }
 
     $("#compare").prop('disabled', true);
+    $("#buttonPlay").prop('disabled', true);
+    $("#buttonStop").prop('disabled', true);
     $("#buttonPrev").prop('disabled', true);
     $("#buttonNext").prop('disabled', true);
 
@@ -312,11 +373,14 @@
       const hasVideo = videoL.videoWidth > 0 && videoR.videoWidth > 0;
 
       const isBusy = busyCounter !== 0 || hasVideo === false;
-      // $("#buttonPlay").prop('disabled', isBusy);
-      $("#buttonPrev").prop('disabled', isBusy);
-      $("#buttonNext").prop('disabled', isBusy);
-      $("#frameLabel").html("frame: " + currentFrame);
+      const isPlaying = playingCount > 0;
 
+      $("#buttonPlay").prop('disabled', isBusy || isPlaying);
+      $("#buttonStop").prop('disabled', !(hasVideo && isPlaying) );
+      $("#buttonPrev").prop('disabled', isBusy || isPlaying);
+      $("#buttonNext").prop('disabled', isBusy || isPlaying);
+      $("#frameLabel").html("frame: " + currentFrame);
+      $("#seekbar").prop('disabled', isBusy || isPlaying);
 
       if( hasVideo )
       {
