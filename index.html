@@ -39,15 +39,17 @@
   </div>
 
   <div id="frameLabel">frame: 0</div>
-  <button type="button" id="buttonPlay" onclick="playSync()">Play</button>
-  <button type="button" id="buttonStop" onclick="stopSync()">Stop</button>
-  <button type="button" id="buttonPrev" onclick="framePrev()">Prev</button>
-  <button type="button" id="buttonNext" onclick="frameNext()">Next</button>
+  <button type="button" id="buttonPlay" style="height: 30px;" onclick="playSync()">Play</button>
+  <button type="button" id="buttonStop" style="height: 30px;" onclick="stopSync()">Stop</button>
+  <button type="button" id="buttonPrev" style="height: 30px;" onclick="framePrev()">&lt;= Prev</button>
+  <button type="button" id="buttonNext" style="height: 30px;" onclick="frameNext()">Next =&gt;</button>
+  <div style="height: 10px;"></div>
+  <div>HotKeys( left/right arrow: frame seek )</div>
   <div style="height: 10px;"></div>
   <!-- oninput="onSeekbarChange(this.value)" -->
   <input type="range" min="0" max="100" value="0" id="seekbar" style="width: 100%" onchange="onSeekbarChange(this.value)" >
 
-  <button type="button" id="compare" onclick="compare()">compare</button>
+  <button type="button" id="compare" style="height: 30px;" onclick="compare()">Compare current frame</button>
 
   <div style="height: 10px;"></div>
   
@@ -151,7 +153,7 @@
         playingCount++;
         updateUI();
       },(e) => {
-        console.log("e");
+        // console.log("e");
       });
     }
     function stopSync()
@@ -220,7 +222,7 @@
 
       refleshCurrentTime(video);
       video.requestVideoFrameCallback( ( x, frame ) => {
-        console.log("seek " + video.currentTime);
+        // console.log("seek " + video.currentTime);
 
         if( Math.abs(mediaTime - frame.mediaTime) < 0.01 )
         {
@@ -365,6 +367,7 @@
     $("#buttonStop").prop('disabled', true);
     $("#buttonPrev").prop('disabled', true);
     $("#buttonNext").prop('disabled', true);
+    $("#seekbar").prop('disabled', true);
 
     function updateUI()
     {
@@ -376,7 +379,7 @@
       const isPlaying = playingCount > 0;
 
       $("#buttonPlay").prop('disabled', isBusy || isPlaying);
-      $("#buttonStop").prop('disabled', !(hasVideo && isPlaying) );
+      $("#buttonStop").prop('disabled', !(hasVideo && isPlaying) || isBusy );
       $("#buttonPrev").prop('disabled', isBusy || isPlaying);
       $("#buttonNext").prop('disabled', isBusy || isPlaying);
       $("#frameLabel").html("frame: " + currentFrame);
@@ -428,6 +431,37 @@
     //   $(selector_label_L).attr("data-beer-label", R_label);
     //   $(selector_label_R).attr("data-beer-label", L_label);
     // }
+    document.addEventListener('keydown', function(event) {
+      if( 0 < busyCounter )
+      {
+        return;
+      }
+      const videoL = document.getElementById(image_L_idx);
+      const videoR = document.getElementById(image_R_idx);
+      const hasVideo = videoL.videoWidth > 0 && videoR.videoWidth > 0;
+      if( !hasVideo )
+      {
+        return;
+      }
+
+      // Left
+      if( event.keyCode == 37 )
+      {
+        framePrev();
+      }
+      // Right
+      if( event.keyCode == 39 )
+      {
+        frameNext();
+      }
+
+      // space
+      if( event.keyCode == 32 )
+      {
+
+      }
+      // console.log("key" + event.keyCode );
+  });
   </script>
 </body>
 </html>

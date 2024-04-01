@@ -2428,7 +2428,8 @@ var BeerSlider = exports.BeerSlider = function () {
             'aria-valuenow': this.start,
             value: this.start,
             min: '0',
-            max: '100'
+            max: '100',
+            onkeydown: "event.preventDefault()",
         });
         this.handle = this.addElement('span', {
             class: this.prefix + '-handle'
