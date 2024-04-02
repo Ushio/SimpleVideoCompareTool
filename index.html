@@ -10,6 +10,8 @@
   <script src="jquery-3.3.1.min.js"></script>
   <script src="jquery.event.move.js"></script>
   <script src="mp4box.all.js"></script>
+  <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.js"></script>
+  <link rel="stylesheet" href="//code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
 
   <style>
       .dragover {
@@ -55,6 +57,9 @@
   <div style="height: 10px;"></div>
   <!-- oninput="onSeekbarChange(this.value)" -->
   <input type="range" min="0" max="100" value="0" id="seekbar" style="width: 100%" onchange="onSeekbarChange(this.value)" >
+  <div style="height: 10px;"></div>
+  <input type="checkbox" name="Playback Range" id="playbackRange" value="0" onchange="updateUI()">Playback Range<br>
+  <div id="playRange" style="margin: 8px;"></div>
 
   <button type="button" id="compare" style="height: 30px;" onclick="compare()">Compare current frame</button>
 
@@ -317,9 +322,22 @@
       video_seek( videoL, nextFrame * deltaTime, () =>{ busyCounter--; updateUI(); });
     }
 
+    $( "#playRange" ).slider({
+      range: true,
+      min: 0,
+      max: 100,
+      values: [ 25, 75 ],
+      slide: function( event, ui ) {
+        console.log($( "#playRange" ).slider("values"));
+      }
+    });
+    $( ".ui-slider-range" ).css( "background-color", "blue" );
+    $( ".ui-slider-handle" ).css( "background-color", "royalblue" );
+
     var isQuerying = false;
     const tick = () => {
       const videoL = document.getElementById(image_L_idx);
+      const videoR = document.getElementById(image_R_idx);
       if( isQuerying == false )
       {
         isQuerying = true;
@@ -339,6 +357,20 @@
             currentFrame = frameNumber;
 
             updateUI(); 
+
+            const enabledPlaybackRange = $('#playbackRange').is(':checked');
+            if( enabledPlaybackRange && 0 < playingCount)
+            {
+              const theRange = $( "#playRange" ).slider("values");
+              const begTime = theRange[0] / 100.0 * duration;
+              const endTime = theRange[1] / 100.0 * duration;
+
+              if( endTime < videoL.currentTime )
+              {
+                videoL.currentTime = begTime;
+                videoR.currentTime = begTime;
+              }
+            }
           }
 
           isQuerying = false;
@@ -373,7 +405,6 @@
         });
       });
     }
-
     var selector_label_L = "#BeforeLabel";
     var selector_label_R = "#slider";
 
@@ -400,6 +431,8 @@
     $("#buttonNext").prop('disabled', true);
     $("#seekbar").prop('disabled', true);
 
+    $("#playRange").hide();
+    
     function updateUI()
     {
       const videoL = document.getElementById(image_L_idx);
@@ -419,6 +452,16 @@
       if( hasVideo )
       {
         $("#compare").prop('disabled', false);
+      }
+
+      const enabledPlaybackRange = $('#playbackRange').is(':checked');
+      if( enabledPlaybackRange )
+      {
+        $("#playRange").show();
+      }
+      else
+      {
+        $("#playRange").hide();
       }
     }
     
