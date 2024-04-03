@@ -34,10 +34,18 @@
 
   <div style="margin: 10px;">
       <div style="width: 100%; display: flex; ">
-          <div id="drop-zoneL" style="height: 50px; width: 100%; border: thin solid #888888;"><span class="boxspan">Left Video (Please drop your video here)</span></div>
+          <div id="drop-zoneL" style="height: 50px; width: 100%; border: thin solid #888888;"><span class="boxspan">Left Video (Please drop your video/folder here)</span></div>
           <div style="width: 20px;"></div>
-          <div id="drop-zoneR" style="height: 50px; width: 100%; border: thin solid #888888;"><span class="boxspan">Right Video (Please drop your video here)</span></div>
+          <div id="drop-zoneR" style="height: 50px; width: 100%; border: thin solid #888888;"><span class="boxspan">Right Video (Please drop your video/folder here)</span></div>
       </div>
+  </div>
+  <div style="display: flex;">
+    <select id="filesL" style="flex: 1;"> 
+      <option value="">--fileList--</option>
+    </select> 
+    <select id="filesR" style="flex: 1;"> 
+      <option value="">--fileList--</option>
+    </select> 
   </div>
 
   <div id="frameLabel">frame: 0</div>
@@ -115,10 +123,100 @@
 
     var offScreenCanvas = document.createElement('canvas');
 
-    var handleDrop = function(e, image_idx, selector_label ) {
+    let videoElements = {
+      '#filesL' : [null],
+      '#filesR' : [null],
+    }; 
+
+    function scanFiles(item, selection_id) {
+     if( item.name.endsWith('.mp4') )
+     {
+      index = videoElements[selection_id].length;
+      videoElements[selection_id].push(item);
+      $(selection_id).append($('<option>', { 
+        value: index,
+        text : item.fullPath 
+      }));
+     }
+
+      if (item.isDirectory) {
+        let directoryReader = item.createReader();
+        directoryReader.readEntries((entries) => {
+          entries.forEach((entry) => {
+            scanFiles(entry, selection_id);
+          });
+        });
+      }
+    }
+
+    function onVideoChanged( item, image_idx )
+    {
+      item.file( ( file ) => {
+        var reader = new FileReader();
+        reader.onload = function(event) {
+          currentFrame = 0;
+
+          const video = document.getElementById(image_idx);
+          video.src = event.target.result;
+          video.onended = onVideoEnd;
+          video.load();
+          video.addEventListener('loadeddata', function() {
+            updateUI();
+          }, false);
+        }
+        
+        reader.readAsDataURL(file);
+
+        const arrayReader = new FileReader();
+        arrayReader.onload = function(e) {
+            const arrayBuffer = e.target.result;
+            const mp4box = new MP4Box.createFile();
+            mp4box.onReady = function(info) {
+                console.log('Metadata:', info);
+                videoFrames = info.tracks[0].nb_samples;
+            };
+            mp4box.onError = function(e) { console.log(e); };
+            arrayBuffer.fileStart = 0;
+            mp4box.appendBuffer((arrayBuffer));
+            mp4box.flush();
+        };
+        arrayReader.readAsArrayBuffer(file);
+      });
+    }
+
+    $('#filesL').on('change', function() {
+      if( this.value === "" )
+      {
+        return;
+      }
+      let item = videoElements['#filesL'][parseInt(this.value)];
+      onVideoChanged( item, image_L_idx );
+    });
+    $('#filesR').on('change', function() {
+      if( this.value === "" )
+      {
+        return;
+      }
+      let item = videoElements['#filesR'][parseInt(this.value)];
+      onVideoChanged( item, image_R_idx );
+    });
+
+    var handleDrop = function(e, image_idx, selector_label, selection_id ) {
         e.preventDefault();
 
         var file = e.originalEvent.dataTransfer.files[0];
+
+        const supportsWebkitGetAsEntry = 'webkitGetAsEntry' in DataTransferItem.prototype;
+        if(supportsWebkitGetAsEntry)
+        {
+          let item = event.dataTransfer.items[0].webkitGetAsEntry();
+
+          if (item.isDirectory) {
+            scanFiles(item, selection_id);
+
+            return;
+          }
+        }
 
         var reader = new FileReader();
         reader.onload = function(event) {
@@ -410,11 +508,11 @@
 
     $("#drop-zoneL").on("drop", function(e) {
         $(this).removeClass("dragover");
-        handleDrop(e, image_L_idx, selector_label_L);
+        handleDrop(e, image_L_idx, selector_label_L, '#filesL');
     });
     $("#drop-zoneR").on("drop", function(e) {
         $(this).removeClass("dragover");
-        handleDrop(e, image_R_idx, selector_label_R);
+        handleDrop(e, image_R_idx, selector_label_R, '#filesR');
     });
 
     function didChangeHideHandle(value) {
