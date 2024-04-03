@@ -209,6 +209,19 @@
         const supportsWebkitGetAsEntry = 'webkitGetAsEntry' in DataTransferItem.prototype;
         if(supportsWebkitGetAsEntry)
         {
+          $('#filesL').empty();
+          $('#filesR').empty();
+          $('#filesL').append($('<option>', { 
+            value: 0,
+            text : "--fileList--",
+          }));
+          $('#filesR').append($('<option>', { 
+            value: 0,
+            text : "--fileList--",
+          }));
+          videoElements['#filesL'] = [null];
+          videoElements['#filesR'] = [null];
+
           let item = event.dataTransfer.items[0].webkitGetAsEntry();
 
           if (item.isDirectory) {
