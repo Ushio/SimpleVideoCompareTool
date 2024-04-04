@@ -74,10 +74,24 @@
   <div style="height: 10px;"></div>
   
   <div class="container" style="display: flex;">
-    <video id="LHSImage" class="videoItem" style="width: 49%;"></video>
-    <video id="RHSImage" class="videoItem" style="width: 49%;"></video>
+    <video id="LHSImage" class="videoItem" style="width: 49%; border-color: blue;"></video>
+    <video id="RHSImage" class="videoItem" style="width: 49%; border-color: red"></video>
   </div>
 
+  <!-- Loupe Feature -->
+  <div style="display: flex; justify-content: center; align-items: baseline; position: absolute; left: 0px; top: 0px; z-index: 10;" id="uicontainerL">
+    <canvas id="uicanvasL" style="max-width:100%; height:auto;">  
+  </div>
+  <div style="display: flex; justify-content: center; align-items: baseline; position: absolute; left: 0px; top: 0px; z-index: 10;" id="uicontainerR">
+    <canvas id="uicanvasR" style="max-width:100%; height:auto;">
+  </div>
+
+  <div style="height: 10px;"></div>
+  <div>
+    <input type="range" id="loupe" min="64" max="1024" value="512" oninput="onLoupe(this.value)" onchange="onLoupe(this.value)"/>
+    <label for="">Loupe Box</label>
+  </div>
+  
   <div style="height: 10px;"></div>
 
   <div class="compContainer" style="display: flex; justify-content: center; align-items: center; display: none;">
@@ -97,6 +111,9 @@
   </div>
 
   <script>
+    const uicanvasL = document.getElementById('uicanvasL');
+    const uicanvasR = document.getElementById('uicanvasR');
+
     beer = new BeerSlider( document.getElementById( "slider" ) ); 
     
     var dragoverHandler = function(e){
@@ -122,6 +139,134 @@
     var playingCount = 0;
 
     var offScreenCanvas = document.createElement('canvas');
+
+    var mouseL = { x: -1000, y: -1000};
+    var mouseR = { x: -1000, y: -1000};
+    var dragging = false;
+    var loupeSize = 512;
+
+    function onLoupe(value)
+    {
+      loupeSize = value;
+      canvasRender();
+    }
+
+    function onMouseDown( event )
+    {
+      dragging = true;
+      const videoL = document.getElementById(image_L_idx);
+      const videoR = document.getElementById(image_R_idx);
+      mouseL = getMousePos( uicanvasL, event );
+      mouseR = getMousePos( uicanvasR, event );
+      canvasRender();
+    }
+    $(uicanvasL).mousedown(onMouseDown);
+    $(uicanvasR).mousedown(onMouseDown);
+
+    $(document).mouseup(function() {
+        dragging = false; 
+    });
+
+    function getMousePos(canvas, event) {
+      var rect = canvas.getBoundingClientRect(),
+        scaleX = canvas.width / rect.width,
+        scaleY = canvas.height / rect.height;
+
+      return {
+        x: (event.pageX - rect.left) * scaleX,
+        y: (event.pageY - rect.top) * scaleY
+      }
+    }
+    $(document).mousemove(function(event) {
+      if(dragging == false)
+      {
+        return;
+      }
+      const videoL = document.getElementById(image_L_idx);
+      const videoR = document.getElementById(image_R_idx);
+      mouseL = getMousePos( uicanvasL, event );
+      mouseR = getMousePos( uicanvasR, event );
+      canvasRender();
+    });
+    
+    function canvasRender()
+    {
+      const videoL = document.getElementById(image_L_idx);
+      const videoR = document.getElementById(image_R_idx);
+      // mouseR = getMousePos( uicanvasR );
+      // mouseL = getMousePos( uicanvasL );
+      
+      const ctxR = uicanvasR.getContext("2d");
+      const ctxL = uicanvasL.getContext("2d");
+      
+      const boxSize = loupeSize;
+      const lineWidth = 5;
+
+      // Right
+      ctxR.clearRect(0, 0, uicanvasR.width, uicanvasR.height);
+      if( 0 < mouseR.x && 0 < mouseR.y && mouseR.x < uicanvasR.width && mouseR.y < uicanvasR.height)
+      {
+        ctxR.drawImage(videoL, 
+          mouseR.x, mouseR.y - boxSize, boxSize, boxSize,
+          mouseR.x - boxSize, mouseR.y - boxSize, boxSize, boxSize); 
+        
+        ctxR.lineWidth = lineWidth;
+        ctxR.strokeStyle = "blue";
+        ctxR.strokeRect (mouseR.x - boxSize, mouseR.y - boxSize, boxSize, boxSize); // L
+  
+        ctxR.strokeStyle = "red";
+        ctxR.strokeRect (mouseR.x, mouseR.y - boxSize, boxSize, boxSize); // R
+      }
+
+      ctxL.clearRect(0, 0, uicanvasL.width, uicanvasL.height);
+      if( 0 < mouseL.x && 0 < mouseL.y && mouseL.x < uicanvasL.width && mouseL.y < uicanvasL.height)
+      {
+        ctxL.drawImage(videoR, 
+          mouseL.x - boxSize, mouseL.y - boxSize, boxSize, boxSize,
+          mouseL.x, mouseL.y - boxSize, boxSize, boxSize); 
+        
+        ctxL.lineWidth = lineWidth;
+        ctxL.strokeStyle = "blue";
+        ctxL.strokeRect (mouseL.x - boxSize, mouseL.y - boxSize, boxSize, boxSize); // L
+  
+        ctxL.strokeStyle = "red";
+        ctxL.strokeRect (mouseL.x, mouseL.y - boxSize, boxSize, boxSize); // R
+      }
+    }
+
+    function updateCanvasLayout()
+    {
+      const LC = $("#" + image_L_idx);
+      var offsetL = LC.offset();
+
+      $('#uicontainerL')
+          .css('left', offsetL.left)
+          .css('top', offsetL.top)
+          .width (LC.width())
+          .height(LC.height());
+
+      const RC = $("#" + image_R_idx);
+      var offsetR = RC.offset();
+
+      $('#uicontainerR')
+          .css('left', offsetR.left)
+          .css('top', offsetR.top)
+          .width (RC.width())
+          .height(RC.height());
+
+      const videoL = document.getElementById(image_L_idx);
+      const videoR = document.getElementById(image_R_idx);
+      uicanvasL.width = videoL.videoWidth;
+      uicanvasL.height = videoL.videoHeight;
+      uicanvasR.width = videoR.videoWidth;
+      uicanvasR.height = videoR.videoHeight;
+
+      canvasRender();
+    }
+    $(document).ready(function() { 
+      $(window).resize(updateCanvasLayout);
+      updateCanvasLayout();
+    }); 
 
     let videoElements = {
       '#filesL' : [null],
@@ -580,6 +725,8 @@
       {
         $("#playRange").hide();
       }
+
+      updateCanvasLayout();
     }
     
     function compare()
