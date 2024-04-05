@@ -64,7 +64,7 @@
   <div>HotKeys( d/f: frame seek )</div>
   <div style="height: 10px;"></div>
   <!-- oninput="onSeekbarChange(this.value)" -->
-  <input type="range" min="0" max="100" value="0" id="seekbar" style="width: 100%" onchange="onSeekbarChange(this.value)" >
+  <input type="range" min="0" max="100" value="0" id="seekbar" style="width: 100%" onchange="onSeekbarChange(this.value)" oninput="onSeekbarChange(this.value)" >
   <div style="height: 10px;"></div>
   <input type="checkbox" name="Playback Range" id="playbackRange" value="0" onchange="updateUI()">Playback Range<br>
   <div id="playRange" style="margin: 8px;"></div>
@@ -504,29 +504,33 @@
       const duration = video.duration;
       const deltaTime = duration / videoFrames;
 
-      if( isFirst )
-        video.currentTime = mediaTime + 0.01 /* magic number, somehow it is faster */;
+      // if( isFirst )
+      //   video.currentTime = mediaTime + 0.01 /* magic number, somehow it is faster */;
 
-      refleshCurrentTime(video);
-      video.requestVideoFrameCallback( ( x, frame ) => {
-        // console.log("seek " + video.currentTime);
+      // refleshCurrentTime(video);
+      // video.requestVideoFrameCallback( ( x, frame ) => {
+      //   // console.log("seek " + video.currentTime);
 
-        if( Math.abs(mediaTime - frame.mediaTime) < 0.01 )
-        {
-          onSeekEnd();
-        }
-        else
-        {
-          if( frame.mediaTime < mediaTime )
-          {
-            video.currentTime += deltaTime;
-          }
-          else{
-            video.currentTime -= deltaTime;
-          }
-          video_seek( video, mediaTime, onSeekEnd, false );
-        }
-      });
+      //   if( Math.abs(mediaTime - frame.mediaTime) < 0.01 )
+      //   {
+      //     onSeekEnd();
+      //   }
+      //   else
+      //   {
+      //     if( frame.mediaTime < mediaTime )
+      //     {
+      //       video.currentTime += deltaTime;
+      //     }
+      //     else{
+      //       video.currentTime -= deltaTime;
+      //     }
+      //     video_seek( video, mediaTime, onSeekEnd, false );
+      //   }
+      // });
+
+      // maybe enough
+      video.currentTime = mediaTime + 0.01;
+      onSeekEnd();
     }
 
     // from UI
@@ -644,28 +648,32 @@
 
     function onSeekbarChange( value )
     {
-      busyCounter++;
-      updateUI();
+      // busyCounter += 2;
+      // updateUI();
 
       const videoL = document.getElementById(image_L_idx);
       const videoR = document.getElementById(image_R_idx);
       const duration = videoL.duration;
       const deltaTime = duration / videoFrames;
-      videoL.currentTime = deltaTime * value;
 
-      refleshCurrentTime(videoL);
-      videoL.requestVideoFrameCallback( ( x, frame ) => {
-        const baseTime = frame.mediaTime;
-        const duration = videoL.duration;
-        const deltaTime = duration / videoFrames;
-        const frameNumber = Math.round(baseTime / deltaTime);
-        currentFrame = frameNumber;
+      // videoL.currentTime = deltaTime * value;
 
-        video_seek( videoR, baseTime, () => {
-          console.log("seekend" + busyCounter);
-          busyCounter--; updateUI();
-        });
-      });
+      // refleshCurrentTime(videoL);
+      // videoL.requestVideoFrameCallback( ( x, frame ) => {
+      //   const baseTime = frame.mediaTime;
+      //   const duration = videoL.duration;
+      //   const deltaTime = duration / videoFrames;
+      //   const frameNumber = Math.round(baseTime / deltaTime);
+      //   currentFrame = frameNumber;
+
+      //   video_seek( videoR, baseTime, () => {
+      //     console.log("seekend" + busyCounter);
+      //     busyCounter--; updateUI();
+      //   });
+      // });
+      
+      video_seek( videoL, deltaTime * value, () => { });
+      video_seek( videoR, deltaTime * value, () => { });
     }
     var selector_label_L = "#BeforeLabel";
     var selector_label_R = "#slider";
