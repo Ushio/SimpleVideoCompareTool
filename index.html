@@ -430,17 +430,15 @@
       const videoL = document.getElementById(image_L_idx);
       const videoR = document.getElementById(image_R_idx);
 
+      playingCount += 2;
+      updateUI();
       videoL.play().then(() => {
-        playingCount++;
-        updateUI();
       },(e) => {
-        
+        playingCount--;
       });
       videoR.play().then(() => {
-        playingCount++;
-        updateUI();
       },(e) => {
-        // console.log("e");
+        playingCount--;
       });
     }
     function stopSync()
@@ -448,35 +446,39 @@
       const videoL = document.getElementById(image_L_idx);
       const videoR = document.getElementById(image_R_idx);
 
-      busyCounter++;
-      updateUI();
+      // busyCounter++;
+      // updateUI();
 
-      setTimeout(function() {
-        playingCount = 0;
+      // setTimeout(function() {
+      //   playingCount = 0;
 
-        refleshCurrentTime(videoL);
-        videoL.requestVideoFrameCallback( ( x, frame ) => {
-          const baseTime = frame.mediaTime;
-          const duration = videoL.duration;
-          const deltaTime = duration / videoFrames;
-          const frameNumber = Math.round(baseTime / deltaTime);
-          currentFrame = frameNumber;
+      //   refleshCurrentTime(videoL);
+      //   videoL.requestVideoFrameCallback( ( x, frame ) => {
+      //     const baseTime = frame.mediaTime;
+      //     const duration = videoL.duration;
+      //     const deltaTime = duration / videoFrames;
+      //     const frameNumber = Math.round(baseTime / deltaTime);
+      //     currentFrame = frameNumber;
 
-          video_seek( videoR, baseTime, () => {
-            busyCounter--; 
-            updateUI();
-          });
-        });
-        videoL.onpause = null;
-      }, 100);
-      
+      //     video_seek( videoR, baseTime, () => {
+      //       busyCounter--; 
+      //       updateUI();
+      //     });
+      //   });
+      //   videoL.onpause = null;
+      // }, 100);
+      videoL.playbackRate = 0;
+      videoR.playbackRate = 0;
       videoL.pause();
       videoR.pause();
+      playingCount = 0;
+      updateUI();
     }
 
     function onVideoEnd()
     {
       playingCount--;
+      playingCount = Math.max( playingCount, 0 );
 
       if( playingCount == 0 )
       {
