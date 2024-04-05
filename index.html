@@ -88,8 +88,11 @@
 
   <div style="height: 10px;"></div>
   <div>
-    <input type="range" id="loupe" min="64" max="1024" value="512" oninput="onLoupe(this.value)" onchange="onLoupe(this.value)"/>
-    <label for="">Loupe Box</label>
+    <label>
+      Loupe Box
+      <input type="range" id="loupe" min="64" max="1024" value="512" oninput="onLoupe(this.value)" onchange="onLoupe(this.value)"/>
+    </label>
+    <div>Left drag: move box, middle click: video LR Flip</div>
   </div>
   
   <div style="height: 10px;"></div>
@@ -144,6 +147,7 @@
     var mouseR = { x: -1000, y: -1000};
     var dragging = false;
     var loupeSize = 512;
+    var mouseButton = 0;
 
     function onLoupe(value)
     {
@@ -156,8 +160,12 @@
       dragging = true;
       const videoL = document.getElementById(image_L_idx);
       const videoR = document.getElementById(image_R_idx);
-      mouseL = getMousePos( uicanvasL, event );
-      mouseR = getMousePos( uicanvasR, event );
+      mouseButton = event.button;
+      if(mouseButton === 0)
+      {
+        mouseL = getMousePos( uicanvasL, event );
+        mouseR = getMousePos( uicanvasR, event );
+      }
       canvasRender();
     }
     $(uicanvasL).mousedown(onMouseDown);
@@ -165,6 +173,7 @@
 
     $(document).mouseup(function() {
         dragging = false; 
+        canvasRender();
     });
 
     function getMousePos(canvas, event) {
@@ -184,8 +193,11 @@
       }
       const videoL = document.getElementById(image_L_idx);
       const videoR = document.getElementById(image_R_idx);
-      mouseL = getMousePos( uicanvasL, event );
-      mouseR = getMousePos( uicanvasR, event );
+      if(mouseButton === 0)
+      {
+        mouseL = getMousePos( uicanvasL, event );
+        mouseR = getMousePos( uicanvasR, event );
+      }
       canvasRender();
     });
     
@@ -201,25 +213,52 @@
       
       const boxSize = loupeSize;
       const lineWidth = 5;
+      const videoFlip = mouseButton === 1 && dragging;
+
+      const viewScale = uicanvasL.width / uicanvasL.getBoundingClientRect().width;
 
       // Right
       ctxR.clearRect(0, 0, uicanvasR.width, uicanvasR.height);
-      if( 0 < mouseR.x && 0 < mouseR.y && mouseR.x < uicanvasR.width && mouseR.y < uicanvasR.height)
+
+      function drawFlipped( ctx )
+      {
+        ctx.save();
+        const fontsize = 24 * viewScale;
+        ctx.font = fontsize + "px Arial";
+        ctx.fillStyle = "red";
+        ctx.strokeStyle = "white";
+        ctx.lineWidth = parseFloat(fontsize) / 6.0;
+        ctx.lineJoin = "round";
+        ctx.strokeText('LR flipped', 32, fontsize);
+        ctx.fillText('LR flipped', 32, fontsize);
+        ctx.restore();
+      }
+
+      if( videoFlip || 0 < mouseR.x && 0 < mouseR.y && mouseR.x < uicanvasR.width && mouseR.y < uicanvasR.height)
       {
         ctxR.drawImage(videoL, 
           mouseR.x, mouseR.y - boxSize, boxSize, boxSize,
           mouseR.x - boxSize, mouseR.y - boxSize, boxSize, boxSize); 
-        
+
         ctxR.lineWidth = lineWidth;
         ctxR.strokeStyle = "blue";
         ctxR.strokeRect (mouseR.x - boxSize, mouseR.y - boxSize, boxSize, boxSize); // L
   
         ctxR.strokeStyle = "red";
         ctxR.strokeRect (mouseR.x, mouseR.y - boxSize, boxSize, boxSize); // R
+
+        if( videoFlip )
+        {
+          ctxR.drawImage(videoL, 
+            0, 0, uicanvasL.width, uicanvasL.height,
+            0, 0, uicanvasL.width, uicanvasL.height); 
+
+            drawFlipped(ctxR);
+        }
       }
 
       ctxL.clearRect(0, 0, uicanvasL.width, uicanvasL.height);
-      if( 0 < mouseL.x && 0 < mouseL.y && mouseL.x < uicanvasL.width && mouseL.y < uicanvasL.height)
+      if( videoFlip || 0 < mouseL.x && 0 < mouseL.y && mouseL.x < uicanvasL.width && mouseL.y < uicanvasL.height)
       {
         ctxL.drawImage(videoR, 
           mouseL.x - boxSize, mouseL.y - boxSize, boxSize, boxSize,
@@ -231,6 +270,14 @@
   
         ctxL.strokeStyle = "red";
         ctxL.strokeRect (mouseL.x, mouseL.y - boxSize, boxSize, boxSize); // R
+
+        if( videoFlip )
+        {
+          ctxL.drawImage(videoR, 
+            0, 0, uicanvasL.width, uicanvasL.height,
+            0, 0, uicanvasL.width, uicanvasL.height); 
+          drawFlipped(ctxL);
+        }
       }
     }
 
@@ -240,8 +287,8 @@
       var offsetL = LC.offset();
 
       $('#uicontainerL')
-          .css('left', offsetL.left)
-          .css('top', offsetL.top)
+          .css('left', offsetL.left + 1)
+          .css('top', offsetL.top + 1)
           .width (LC.width())
           .height(LC.height());
 
@@ -249,8 +296,8 @@
       var offsetR = RC.offset();
 
       $('#uicontainerR')
-          .css('left', offsetR.left)
-          .css('top', offsetR.top)
+          .css('left', offsetR.left + 1)
+          .css('top', offsetR.top + 1)
           .width (RC.width())
           .height(RC.height());
 
