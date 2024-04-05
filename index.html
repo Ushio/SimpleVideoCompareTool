@@ -297,20 +297,15 @@
     function onVideoChanged( item, image_idx )
     {
       item.file( ( file ) => {
-        var reader = new FileReader();
-        reader.onload = function(event) {
-          currentFrame = 0;
+        currentFrame = 0;
 
-          const video = document.getElementById(image_idx);
-          video.src = event.target.result;
-          video.onended = onVideoEnd;
-          video.load();
-          video.addEventListener('loadeddata', function() {
-            updateUI();
-          }, false);
-        }
-        
-        reader.readAsDataURL(file);
+        const video = document.getElementById(image_idx);
+        video.src = URL.createObjectURL(file);
+        video.onended = onVideoEnd;
+        video.load();
+        video.addEventListener('loadeddata', function() {
+          updateUI();
+        }, false);
 
         const arrayReader = new FileReader();
         arrayReader.onload = function(e) {
@@ -382,20 +377,15 @@
           }
         }
 
-        var reader = new FileReader();
-        reader.onload = function(event) {
-          currentFrame = 0;
+        currentFrame = 0;
 
-          const video = document.getElementById(image_idx);
-          video.src = event.target.result;
-          video.onended = onVideoEnd;
-          video.load();
-          video.addEventListener('loadeddata', function() {
-            updateUI();
-          }, false);
-        }
-        
-        reader.readAsDataURL(file);
+        const video = document.getElementById(image_idx);
+        video.src = URL.createObjectURL(file);
+        video.onended = onVideoEnd;
+        video.load();
+        video.addEventListener('loadeddata', function() {
+          updateUI();
+        }, false);
 
         const arrayReader = new FileReader();
         arrayReader.onload = function(e) {
