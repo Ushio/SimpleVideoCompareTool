@@ -167,6 +167,7 @@
         mouseR = getMousePos( uicanvasR, event );
       }
       canvasRender();
+      event.preventDefault();
     }
     $(uicanvasL).mousedown(onMouseDown);
     $(uicanvasR).mousedown(onMouseDown);
