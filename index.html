@@ -61,7 +61,7 @@
   <button type="button" id="buttonPrev" style="height: 30px;" onclick="framePrev()">&lt;= Prev</button>
   <button type="button" id="buttonNext" style="height: 30px;" onclick="frameNext()">Next =&gt;</button>
   <div style="height: 10px;"></div>
-  <div>HotKeys( d/f: frame seek )</div>
+  <div>HotKeys( d/f: frame seek, space: play or stop )</div>
   <div style="height: 10px;"></div>
   <!-- oninput="onSeekbarChange(this.value)" -->
   <input type="range" min="0" max="100" value="0" id="seekbar" style="width: 100%" onchange="onSeekbarChange(this.value)" oninput="onSeekbarChange(this.value)" >
@@ -844,7 +844,16 @@
       // space
       if( event.keyCode == 32 )
       {
-
+        const isPlaying = playingCount > 0;
+        if(isPlaying)
+        {
+          stopSync();
+        }
+        else
+        {
+          playSync();
+        }
+        e.preventDefault();
       }
       // console.log("key" + event.keyCode );
   });
