@@ -80,10 +80,10 @@
 
   <!-- Loupe Feature -->
   <div style="display: flex; justify-content: center; align-items: baseline; position: absolute; left: 0px; top: 0px; z-index: 10;" id="uicontainerL">
-    <canvas id="uicanvasL" style="max-width:100%; height:auto;">  
+    <canvas id="uicanvasL" style="max-width:100%; height:auto;" oncontextmenu="return false;">  
   </div>
   <div style="display: flex; justify-content: center; align-items: baseline; position: absolute; left: 0px; top: 0px; z-index: 10;" id="uicontainerR">
-    <canvas id="uicanvasR" style="max-width:100%; height:auto;">
+    <canvas id="uicanvasR" style="max-width:100%; height:auto;" oncontextmenu="return false;">
   </div>
 
   <div style="height: 10px;"></div>
@@ -92,7 +92,7 @@
       Loupe Box
       <input type="range" id="loupe" min="64" max="1024" value="512" oninput="onLoupe(this.value)" onchange="onLoupe(this.value)"/>
     </label>
-    <div>Left drag: move box, middle click: video LR Flip</div>
+    <div>Left drag: move box, middle click: video LR Flip, right click: show difference</div>
   </div>
   
   <div style="height: 10px;"></div>
@@ -148,6 +148,7 @@
     var dragging = false;
     var loupeSize = 512;
     var mouseButton = 0;
+    var diffViewIndex = 0;
 
     function onLoupe(value)
     {
@@ -165,6 +166,11 @@
       {
         mouseL = getMousePos( uicanvasL, event );
         mouseR = getMousePos( uicanvasR, event );
+      }
+      if(mouseButton == 2)
+      {
+        const m = getMousePos( uicanvasL, event );
+        diffViewIndex = m.x < uicanvasL.width ? 0 : 1;
       }
       canvasRender();
       event.preventDefault();
@@ -215,13 +221,14 @@
       const boxSize = loupeSize;
       const lineWidth = 5;
       const videoFlip = mouseButton === 1 && dragging;
+      const useDiff   = mouseButton === 2 && dragging;
 
       const viewScale = uicanvasL.width / uicanvasL.getBoundingClientRect().width;
 
       // Right
       ctxR.clearRect(0, 0, uicanvasR.width, uicanvasR.height);
 
-      function drawFlipped( ctx )
+      function drawLabel( ctx, label )
       {
         ctx.save();
         const fontsize = 24 * viewScale;
@@ -230,12 +237,27 @@
         ctx.strokeStyle = "white";
         ctx.lineWidth = parseFloat(fontsize) / 6.0;
         ctx.lineJoin = "round";
-        ctx.strokeText('LR flipped', 32, fontsize);
-        ctx.fillText('LR flipped', 32, fontsize);
+        ctx.strokeText(label, 32, fontsize);
+        ctx.fillText(label, 32, fontsize);
         ctx.restore();
       }
+      function drawDiff( ctx )
+      {
+        ctx.save();
+        ctx.drawImage(videoR, 
+          0, 0, uicanvasL.width, uicanvasL.height,
+          0, 0, uicanvasL.width, uicanvasL.height); 
+        ctx.globalCompositeOperation = "difference";
+        ctx.drawImage(videoL, 
+          0, 0, uicanvasL.width, uicanvasL.height,
+          0, 0, uicanvasL.width, uicanvasL.height); 
+          ctx.restore();
+      }
 
-      if( videoFlip || 0 < mouseR.x && 0 < mouseR.y && mouseR.x < uicanvasR.width && mouseR.y < uicanvasR.height)
+      const isHoverOnRight = 0 < mouseR.x && 0 < mouseR.y && mouseR.x < uicanvasR.width && mouseR.y < uicanvasR.height;
+      const isHoverOnLeft = 0 < mouseL.x && 0 < mouseL.y && mouseL.x < uicanvasL.width && mouseL.y < uicanvasL.height;
+
+      if( videoFlip || useDiff || isHoverOnRight )
       {
         ctxR.drawImage(videoL, 
           mouseR.x, mouseR.y - boxSize, boxSize, boxSize,
@@ -254,12 +276,17 @@
             0, 0, uicanvasL.width, uicanvasL.height,
             0, 0, uicanvasL.width, uicanvasL.height); 
 
-            drawFlipped(ctxR);
+          drawLabel(ctxR, 'LR flipped');
+        }
+        if( useDiff && diffViewIndex == 1 )
+        {
+          drawDiff(ctxR);
+          drawLabel(ctxR, 'Difference');
         }
       }
 
       ctxL.clearRect(0, 0, uicanvasL.width, uicanvasL.height);
-      if( videoFlip || 0 < mouseL.x && 0 < mouseL.y && mouseL.x < uicanvasL.width && mouseL.y < uicanvasL.height)
+      if( videoFlip || useDiff || isHoverOnLeft )
       {
         ctxL.drawImage(videoR, 
           mouseL.x - boxSize, mouseL.y - boxSize, boxSize, boxSize,
@@ -277,7 +304,12 @@
           ctxL.drawImage(videoR, 
             0, 0, uicanvasL.width, uicanvasL.height,
             0, 0, uicanvasL.width, uicanvasL.height); 
-          drawFlipped(ctxL);
+            drawLabel(ctxL, 'LR flipped');
+        }
+        if( useDiff && diffViewIndex == 0 )
+        {
+          drawDiff(ctxL);
+          drawLabel(ctxL, 'Difference');
         }
       }
     }
