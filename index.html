@@ -573,6 +573,12 @@
 
     function onVideoEnd()
     {
+      // onVideoEnd() may call after seeking to the end manually
+      if( playingCount <= 0 )
+      {
+        return;
+      }
+
       playingCount--;
       playingCount = Math.max( playingCount, 0 );
 
