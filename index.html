@@ -259,16 +259,19 @@
 
       if( videoFlip || useDiff || isHoverOnRight )
       {
-        ctxR.drawImage(videoL, 
-          mouseR.x, mouseR.y - boxSize, boxSize, boxSize,
-          mouseR.x - boxSize, mouseR.y - boxSize, boxSize, boxSize); 
-
-        ctxR.lineWidth = lineWidth;
-        ctxR.strokeStyle = "blue";
-        ctxR.strokeRect (mouseR.x - boxSize, mouseR.y - boxSize, boxSize, boxSize); // L
+        if( isHoverOnRight )
+        {
+          ctxR.drawImage(videoL, 
+            mouseR.x, mouseR.y - boxSize, boxSize, boxSize,
+            mouseR.x - boxSize, mouseR.y - boxSize, boxSize, boxSize); 
   
-        ctxR.strokeStyle = "red";
-        ctxR.strokeRect (mouseR.x, mouseR.y - boxSize, boxSize, boxSize); // R
+          ctxR.lineWidth = lineWidth;
+          ctxR.strokeStyle = "blue";
+          ctxR.strokeRect (mouseR.x - boxSize, mouseR.y - boxSize, boxSize, boxSize); // L
+    
+          ctxR.strokeStyle = "red";
+          ctxR.strokeRect (mouseR.x, mouseR.y - boxSize, boxSize, boxSize); // R
+        }
 
         if( videoFlip )
         {
@@ -288,16 +291,19 @@
       ctxL.clearRect(0, 0, uicanvasL.width, uicanvasL.height);
       if( videoFlip || useDiff || isHoverOnLeft )
       {
-        ctxL.drawImage(videoR, 
-          mouseL.x - boxSize, mouseL.y - boxSize, boxSize, boxSize,
-          mouseL.x, mouseL.y - boxSize, boxSize, boxSize); 
-        
-        ctxL.lineWidth = lineWidth;
-        ctxL.strokeStyle = "blue";
-        ctxL.strokeRect (mouseL.x - boxSize, mouseL.y - boxSize, boxSize, boxSize); // L
-  
-        ctxL.strokeStyle = "red";
-        ctxL.strokeRect (mouseL.x, mouseL.y - boxSize, boxSize, boxSize); // R
+        if(isHoverOnLeft)
+        {
+          ctxL.drawImage(videoR, 
+            mouseL.x - boxSize, mouseL.y - boxSize, boxSize, boxSize,
+            mouseL.x, mouseL.y - boxSize, boxSize, boxSize); 
+          
+          ctxL.lineWidth = lineWidth;
+          ctxL.strokeStyle = "blue";
+          ctxL.strokeRect (mouseL.x - boxSize, mouseL.y - boxSize, boxSize, boxSize); // L
+    
+          ctxL.strokeStyle = "red";
+          ctxL.strokeRect (mouseL.x, mouseL.y - boxSize, boxSize, boxSize); // R
+        }
 
         if( videoFlip )
         {
