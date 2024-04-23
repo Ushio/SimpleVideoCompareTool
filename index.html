@@ -371,22 +371,42 @@
         arrayReader.readAsArrayBuffer(file);
       });
     }
+    
+    function synchronizeElement( selector, item )
+    {
+      const indexInOthers = videoElements[selector].findIndex( ( elem ) => elem != null && elem.name === item.name );
+      if( 0 <= indexInOthers )
+      {
+        $(selector).val(indexInOthers);
+        $(selector).trigger("change");
+      }
+    }
 
-    $('#filesL').on('change', function() {
+    $('#filesL').on('change', function( e ) {
       if( this.value === "" )
       {
         return;
       }
       let item = videoElements['#filesL'][parseInt(this.value)];
       onVideoChanged( item, image_L_idx );
+
+      if( e.hasOwnProperty("originalEvent") )
+      {
+        synchronizeElement( '#filesR', item )
+      }
     });
-    $('#filesR').on('change', function() {
+    $('#filesR').on('change', function( e ) {
       if( this.value === "" )
       {
         return;
       }
       let item = videoElements['#filesR'][parseInt(this.value)];
       onVideoChanged( item, image_R_idx );
+
+      if( e.hasOwnProperty("originalEvent") )
+      {
+        synchronizeElement( '#filesL', item )
+      }
     });
 
     var handleDrop = function(e, image_idx, selector_label, selection_id ) {
