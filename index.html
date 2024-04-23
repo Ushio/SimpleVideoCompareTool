@@ -697,52 +697,60 @@
     });
     $( ".ui-slider-range" ).css( "background-color", "blue" );
     $( ".ui-slider-handle" ).css( "background-color", "royalblue" );
-
-    var isQuerying = false;
-    const tick = () => {
+    
+    function queryFrameL()
+    {
       const videoL = document.getElementById(image_L_idx);
       const videoR = document.getElementById(image_R_idx);
-      if( isQuerying == false )
-      {
-        isQuerying = true;
 
-        videoL.requestVideoFrameCallback( ( x, frame ) => {
-          if( busyCounter == 0 )
+      videoL.requestVideoFrameCallback( ( x, frame ) => {
+        const baseTime = frame.mediaTime;
+        const duration = videoL.duration;
+        const deltaTime = duration / videoFrames;
+        const frameNumber = Math.round(baseTime / deltaTime);
+
+        if( busyCounter == 0 )
+        {
+          const slider = document.getElementById("seekbar");
+          slider.max = Math.round(duration / deltaTime) - 1;
+          slider.value = frameNumber;
+
+          currentFrame = frameNumber;
+
+          updateUI(); 
+
+          const enabledPlaybackRange = $('#playbackRange').is(':checked');
+          if( enabledPlaybackRange && 0 < playingCount)
           {
-            const baseTime = frame.mediaTime;
-            const duration = videoL.duration;
-            const deltaTime = duration / videoFrames;
-            const frameNumber = Math.round(baseTime / deltaTime);
-            
-            const slider = document.getElementById("seekbar");
-            slider.max = Math.round(duration / deltaTime) - 1;
-            slider.value = frameNumber;
+            const theRange = $( "#playRange" ).slider("values");
+            const begTime = theRange[0] / 100.0 * duration;
+            const endTime = theRange[1] / 100.0 * duration;
 
-            currentFrame = frameNumber;
-
-            updateUI(); 
-
-            const enabledPlaybackRange = $('#playbackRange').is(':checked');
-            if( enabledPlaybackRange && 0 < playingCount)
+            if( endTime < videoL.currentTime )
             {
-              const theRange = $( "#playRange" ).slider("values");
-              const begTime = theRange[0] / 100.0 * duration;
-              const endTime = theRange[1] / 100.0 * duration;
-
-              if( endTime < videoL.currentTime )
-              {
-                videoL.currentTime = begTime;
-                videoR.currentTime = begTime;
-              }
+              videoL.currentTime = begTime;
+              videoR.currentTime = begTime;
             }
           }
+        }
 
-          isQuerying = false;
-        });
-      }
-      requestAnimationFrame(tick);
+        queryFrameL();
+      });
     }
-    tick();
+    queryFrameL();
+
+    // function queryFrameR()
+    // {
+    //   const videoR = document.getElementById(image_R_idx);
+    //   videoR.requestVideoFrameCallback( ( x, frame ) => {
+    //     const baseTime = frame.mediaTime;
+    //     const duration = videoR.duration;
+    //     const deltaTime = duration / videoFrames;
+    //     const frameNumber = Math.round(baseTime / deltaTime);
+    //     queryFrameR();
+    //   });
+    // }
+    // queryFrameR();
 
     function onSeekbarChange( value )
     {
