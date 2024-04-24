@@ -779,15 +779,23 @@
 
     var psnrs = {};
         
+    var heatmapMx = 0;
+    var heatmapMy = 0;
+    
+    const heatmap = document.getElementById("heatmap");
+
     function updateHeatmap()
     {
       if(isHeatmapEnabled == false)
       {
         return;
       }
-      const heatmap = document.getElementById("heatmap");
-      heatmap.width = 2048;
-      heatmap.height = 32;
+      
+      const retinaScale = 1;
+      heatmap.width = heatmap.getBoundingClientRect().width * retinaScale;
+      heatmap.height = 32 * retinaScale;
+      // heatmap.width = 2048;
+      // heatmap.height = 32;
       const hctx = heatmap.getContext("2d");
 
       var maxPSNR = $('#MaxPSNR').val();
@@ -808,7 +816,55 @@
         }
         hctx.fillRect(step * frameNumber, 0, step, heatmap.height);
       }
+      
+      for( let frameNumber = 0 ; frameNumber < videoFrames ; frameNumber++ )
+      {
+        if( step * frameNumber < heatmapMx && heatmapMx < step * (frameNumber + 1) )
+        {
+          hctx.lineWidth = 2;
+          hctx.strokeStyle = "cyan";
+          const margin = 1;
+          hctx.strokeRect( step * frameNumber, margin, step, heatmap.height-margin);
+
+          const psnr = psnrs[frameNumber];
+          if( psnr !== undefined )
+          {
+            hctx.fillStyle = "white";
+            hctx.font = "16px Arial";
+            hctx.lineWidth = 3;
+            hctx.strokeStyle = "black";
+
+            text = `PSNR: ${psnr.toFixed(2)}`;
+
+            if(frameNumber < videoFrames * 0.5)
+            {
+              hctx.textAlign = "left";
+
+              hctx.strokeText(text, step * (frameNumber + 1) + 10, heatmap.height * 0.5);
+              hctx.fillText( text, step * (frameNumber + 1) + 10, heatmap.height * 0.5);
+            }
+            else
+            {
+              hctx.textAlign = "right";
+
+              hctx.strokeText(text, step * frameNumber - 10, heatmap.height * 0.5);
+              hctx.fillText( text, step * frameNumber - 10, heatmap.height * 0.5);
+            }
+          }
+        }
+      }
     }
+
+    heatmap.addEventListener('mousemove', function(event) {
+        const rect = heatmap.getBoundingClientRect();
+        scaleX = heatmap.width / rect.width,
+        scaleY = heatmap.height / rect.height;
+        heatmapMx = ( event.clientX - rect.left ) * scaleX;
+        heatmapMy = ( event.clientY - rect.top ) * scaleY;
+
+        updateHeatmap();
+    });
+
     document.getElementById(image_L_idx).addEventListener('loadeddata', function() {
       psnrs = {};
       updateHeatmap();
