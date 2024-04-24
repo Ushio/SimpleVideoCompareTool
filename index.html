@@ -864,6 +864,20 @@
 
         updateHeatmap();
     });
+    heatmap.addEventListener('mousedown', function(event) {
+      step = heatmap.width / videoFrames;
+      frameNumber = Math.floor(heatmapMx / step);
+
+      if( 0 <= frameNumber && frameNumber < videoFrames)
+      {
+        const slider = document.getElementById("seekbar");
+        slider.value = frameNumber;
+        currentFrame = frameNumber;
+  
+        updateUI(); 
+        onSeekbarChange( slider.value );
+      }
+    });
 
     document.getElementById(image_L_idx).addEventListener('loadeddata', function() {
       psnrs = {};
