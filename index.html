@@ -167,7 +167,9 @@
     var isHeatmapEnabled = false;
     $('.collapsible').click(function() {
         var content = $(this).next();
-        content.slideToggle(100);
+        content.slideToggle(100, function() {
+          updateCanvasLayout();
+        });
         content.toggleClass('open');
         isHeatmapEnabled = content.hasClass('open');
     });
