@@ -28,6 +28,27 @@
         aspect-ratio: auto;
         border: 1px solid black;
       }
+      .collapsible {
+        background-color: #eee;
+        color: #444;
+        cursor: pointer;
+        width: 100%;
+        border: none;
+        text-align: left;
+        outline: none;
+        font-size: 15px;
+      }
+
+      /* Add a background color to the button if it is clicked on (add the .active class with JS), and when you move the mouse over it (hover) */
+      .active, .collapsible:hover {
+        background-color: #ccc;
+      }
+      /* Style the collapsible content. Note: hidden by default */
+      .content {
+        display: none;
+        overflow: hidden;
+        background-color: #f1f1f1;
+      }
 </style>
 </head>
 <body>
@@ -63,6 +84,16 @@
   <div style="height: 10px;"></div>
   <div>HotKeys( d/f: frame seek, space: play or stop )</div>
   <div style="height: 10px;"></div>
+
+  <button type="button" class="collapsible">PSNR HeatMap</button>
+  <div class="content" style="margin: 0;">
+    <img src="map_label.png"><br>
+    <label for="MaxPSNR">Max PSNR:</label>
+    <input type="number" id="MaxPSNR" value="35" min="0" step="1" style="width: 64px;font-size: 16px;" onchange="updateHeatmap()">
+    <label for="MinPSNR">Min PSNR:</label>
+    <input type="number" id="MinPSNR" value="20" min="0" step="1" style="width: 64px;font-size: 16px;" onchange="updateHeatmap()">
+    <canvas id="heatmap" style="width: calc(100% - 4px); height:32px; background-color: black; margin-left: 4px;"></canvas>
+  </div>
   <!-- oninput="onSeekbarChange(this.value)" -->
   <input type="range" min="0" max="100" value="0" id="seekbar" style="width: 100%" onchange="onSeekbarChange(this.value)" oninput="onSeekbarChange(this.value)" >
   <div style="height: 10px;"></div>
@@ -132,6 +163,14 @@
     };
     $("#drop-zoneL").on("dragleave", dragleaveHandler);
     $("#drop-zoneR").on("dragleave", dragleaveHandler);
+
+    var isHeatmapEnabled = false;
+    $('.collapsible').click(function() {
+        var content = $(this).next();
+        content.slideToggle(100);
+        content.toggleClass('open');
+        isHeatmapEnabled = content.hasClass('open');
+    });
     
     var image_L_idx = "LHSImage";
     var image_R_idx = "RHSImage";
@@ -703,6 +742,140 @@
     });
     $( ".ui-slider-range" ).css( "background-color", "blue" );
     $( ".ui-slider-handle" ).css( "background-color", "royalblue" );
+
+    // from https://www.shadertoy.com/view/XtGGzG
+    function magmaQuintic(x) {
+      x = Math.max(0, Math.min(1, x));
+
+      let x1 = [1.0, x, x * x, x * x * x]; // 1, x, x^2, x^3
+      let x2 = [x1[3] * x, x1[3] * x * x]; // x^4, x^5
+
+      function dot4(a, b) {
+          return a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3];
+      }
+
+      function dot2(a, b) {
+          return a[0] * b[0] + a[1] * b[1];
+      }
+
+      // Calculate RGB components
+      let r = dot4(x1, [-0.023226960, +1.087154378, -0.109964741, +6.333665763]) + dot2(x2, [-11.640596589, +5.337625354]);
+      let g = dot4(x1, [+0.010680993, +0.176613780, +1.638227448, -6.743522237]) + dot2(x2, [+11.426396979, -5.523236379]);
+      let b = dot4(x1, [-0.008260782, +2.244286052, +3.005587601, -24.279769818]) + dot2(x2, [+32.484310068, -12.688259703]);
+
+      return [r, g, b];
+    }
+    function remap(value, inputMin, inputMax, outputMin, outputMax)
+    {
+        return (value - inputMin) * ((outputMax - outputMin) / (inputMax - inputMin)) + outputMin;
+    }
+    
+    var bitmapImageL = null;
+    var frameNumberL = -1;
+    var bitmapImageR = null;
+    var frameNumberR = -1;
+
+    var psnrs = {};
+        
+    function updateHeatmap()
+    {
+      if(isHeatmapEnabled == false)
+      {
+        return;
+      }
+      const heatmap = document.getElementById("heatmap");
+      heatmap.width = 2048;
+      heatmap.height = 32;
+      const hctx = heatmap.getContext("2d");
+
+      var maxPSNR = $('#MaxPSNR').val();
+      var minPSNR = $('#MinPSNR').val();
+
+      step = heatmap.width / videoFrames;
+      for( let frameNumber = 0 ; frameNumber < videoFrames ; frameNumber++ )
+      {
+        const psnr = psnrs[frameNumber];
+        if( psnr == undefined )
+        {
+          hctx.fillStyle = `rgb(0, 0, 0)`;
+        }
+        else
+        {
+          const color = magmaQuintic(remap(psnr, maxPSNR, minPSNR, 0, 1));
+          hctx.fillStyle = `rgb(${color[0] * 255}, ${color[1] * 255}, ${color[2] * 255})`;
+        }
+        hctx.fillRect(step * frameNumber, 0, step, heatmap.height);
+      }
+    }
+    document.getElementById(image_L_idx).addEventListener('loadeddata', function() {
+      psnrs = {};
+      updateHeatmap();
+    }, false);
+
+    function onFrameArrived( frame, video, videoLabel )
+    {
+      if(isHeatmapEnabled == false)
+      {
+        return;
+      }
+
+      const baseTime = frame.mediaTime;
+      const duration = video.duration;
+      const deltaTime = duration / videoFrames;
+      const frameNumber = Math.round(baseTime / deltaTime);
+
+      let startTime = performance.now();
+      createImageBitmap(video).then(function (image) { 
+        if( videoLabel == "L" )
+        {
+          bitmapImageL = image;
+          frameNumberL = frameNumber;
+        }
+        else
+        {
+          bitmapImageR = image;
+          frameNumberR = frameNumber;
+        }
+
+        if( frameNumberL == frameNumberR )
+        {
+          const scale = 2; // raw res calculation could be too much..
+          const w = offScreenCanvas.width = image.width / scale;
+          const h = offScreenCanvas.height = image.height / scale;
+          const context = offScreenCanvas.getContext("2d", { willReadFrequently: true });
+          context.save();
+          context.drawImage(bitmapImageL, 0, 0, w, h);
+          context.globalCompositeOperation = "difference";
+          context.drawImage(bitmapImageR, 0, 0, w, h);
+          context.restore();
+
+          const imageData = context.getImageData(0, 0, w, h);
+          const pixels = imageData.data;
+          var mseR = 0;
+          var mseG = 0;
+          var mseB = 0;
+          const numPixels = pixels.length / 4;
+          for( let i = 0; i < pixels.length; i += 4 ) {
+              rd = pixels[i];
+              gd = pixels[i+1];
+              bd = pixels[i+2];
+              mseR += rd * rd;
+              mseG += gd * gd;
+              mseB += gd * gd;
+          }
+          const mse = (mseR + mseG + mseB ) / 3 / numPixels;
+          const maxI = 255
+          const PSNR = 10 * Math.log10( maxI * maxI / mse );
+          psnrs[frameNumberL] = PSNR;
+          
+          // let endTime = performance.now();
+          // console.log( `PSNR: ${PSNR}`);
+          // console.log(`Execution time: ${endTime - startTime} milliseconds`);
+
+          updateHeatmap();
+        }
+      });
+    }
     
     function queryFrameL()
     {
@@ -740,23 +913,49 @@
           }
         }
 
+        onFrameArrived( frame, videoL, "L" );
+
         queryFrameL();
       });
     }
     queryFrameL();
 
-    // function queryFrameR()
-    // {
-    //   const videoR = document.getElementById(image_R_idx);
-    //   videoR.requestVideoFrameCallback( ( x, frame ) => {
-    //     const baseTime = frame.mediaTime;
-    //     const duration = videoR.duration;
-    //     const deltaTime = duration / videoFrames;
-    //     const frameNumber = Math.round(baseTime / deltaTime);
-    //     queryFrameR();
-    //   });
-    // }
-    // queryFrameR();
+    function queryFrameR()
+    {
+      const videoR = document.getElementById(image_R_idx);
+      videoR.requestVideoFrameCallback( ( x, frame ) => {
+        const baseTime = frame.mediaTime;
+        const duration = videoR.duration;
+        const deltaTime = duration / videoFrames;
+        const frameNumber = Math.round(baseTime / deltaTime);
+
+        // let startTime = performance.now();
+
+        // offScreenCanvas.width = videoR.videoWidth;
+        // offScreenCanvas.height = videoR.videoHeight;
+        // const context = offScreenCanvas.getContext("2d", { willReadFrequently: true });
+        // context.drawImage(videoR, 0, 0, offScreenCanvas.width, offScreenCanvas.height);
+        // const imageData = context.getImageData(0, 0, offScreenCanvas.width, offScreenCanvas.height);
+
+        // let endTime = performance.now();
+        // console.log(`Execution time: ${endTime - startTime} milliseconds`);
+
+        // let startTime = performance.now();
+        // createImageBitmap(videoR).then(function (image) { 
+        //   offScreenCanvas.width = image.width / 2;
+        //   offScreenCanvas.height = image.height / 2;
+        //   const context = offScreenCanvas.getContext("2d", { willReadFrequently: true });
+        //   const imageData = context.getImageData(0, 0, offScreenCanvas.width, offScreenCanvas.height);
+        //   let endTime = performance.now();
+        //   console.log(`Execution time: ${endTime - startTime} milliseconds`);
+        // });
+
+        onFrameArrived( frame, videoR, "R" );
+
+        queryFrameR();
+      });
+    }
+    queryFrameR();
 
     function onSeekbarChange( value )
     {
