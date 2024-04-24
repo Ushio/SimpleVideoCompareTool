@@ -88,6 +88,7 @@
   <button type="button" class="collapsible">PSNR HeatMap</button>
   <div class="content" style="margin: 0;">
     <img src="map_label.png"><br>
+    <div>Note: Sometimes, heatmap can wrongly be calculated due to difficulity of perfect video frame synchronization. You can try to seek to the frame or play with a slower speed.</div>
     <label for="MaxPSNR">Max PSNR:</label>
     <input type="number" id="MaxPSNR" value="35" min="0" step="1" style="width: 64px;font-size: 16px;" onchange="updateHeatmap()">
     <label for="MinPSNR">Min PSNR:</label>
