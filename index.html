@@ -934,9 +934,9 @@
               bd = pixels[i+2];
               mseR += rd * rd;
               mseG += gd * gd;
-              mseB += gd * gd;
+              mseB += bd * bd;
           }
-          const mse = (mseR + mseG + mseB ) / 3 / numPixels;
+          const mse = ( mseR + mseG + mseB ) / 3 / numPixels;
           const maxI = 255
           const PSNR = 10 * Math.log10( maxI * maxI / mse );
           psnrs[frameNumberL] = PSNR;
