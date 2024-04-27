@@ -17,6 +17,6 @@ self.addEventListener('message',(e) => {
     const maxI = 255
     const PSNR = 10 * Math.log10( maxI * maxI / mse );
     e.data.PSNR = PSNR;
-    
+    e.data.pixels = null; // avoid copying again
     self.postMessage(e.data);
 }, false);
