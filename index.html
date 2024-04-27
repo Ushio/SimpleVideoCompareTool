@@ -957,7 +957,7 @@
             frame: frameNumberL,
             pixels: pixels,
             queryTime: performance.now()
-          });
+          }, [pixels.buffer]);
           
           // let endTime = performance.now();
           // console.log(`Execution time: ${endTime - startTime} milliseconds`);
