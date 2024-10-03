@@ -362,6 +362,20 @@
       }
     }
 
+    function readEntryAll( directoryReader, onRead )
+    {
+      directoryReader.readEntries((entries) => {
+        if(entries.length == 0)
+        {
+          return;
+        }
+
+        onRead(entries);
+
+        readEntryAll(directoryReader, onRead);
+      });
+    }
+
     function updateCanvasLayout()
     {
       const LC = $("#" + image_L_idx);
@@ -414,7 +428,15 @@
 
       if (item.isDirectory) {
         let directoryReader = item.createReader();
-        directoryReader.readEntries((entries) => {
+        
+        // readEntries only reads limited number of elements, insane API.
+        // directoryReader.readEntries((entries) => {
+        //   entries.forEach((entry) => {
+        //     scanFiles(entry, selection_id);
+        //   });
+        // });
+
+        readEntryAll( directoryReader, (entries) => {
           entries.forEach((entry) => {
             scanFiles(entry, selection_id);
           });
