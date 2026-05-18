@@ -478,12 +478,21 @@
     {
       return fullPath.split("/").slice(-nComps).join("/")
     }
-
+    function getSecondLast( fullPath )
+    {
+      elements = fullPath.split("/")
+      if(2 <= elements.length)
+      {
+        return elements.slice(-2, -1)[0]
+      }
+      return fullPath
+    }
     function synchronizeElement( selector, item )
     {
       const closures = [
         function( elem ) { return elem != null && elem.name === item.name },
         function( elem ) { return elem != null && getLastNComps(elem.fullPath, 2) === getLastNComps(item.fullPath, 2) },
+        function( elem ) { return elem != null && getSecondLast(elem.fullPath) === getSecondLast(item.fullPath) },
         function( elem ) { return elem != null && elem.fullPath === item.fullPath },
       ]
       
@@ -491,6 +500,10 @@
       for( const closure of closures )
       {
         indexInOthers = videoElements[selector].findIndex( closure );
+        if(indexInOthers === -1)
+        {
+          continue; // not found.
+        }
         if(indexInOthers === videoElements[selector].findLastIndex( closure ) )
         {
           break;
