@@ -608,7 +608,7 @@
     function onPlaybackSpeedChange()
     {
       const playbackSpeed = $('[name="playbackSpeed"] option:selected').val();
-      const rate = parseInt(playbackSpeed) / 100.0
+      const rate = parseInt(playbackSpeed) / 100.0;
 
       const videoL = document.getElementById(image_L_idx);
       const videoR = document.getElementById(image_R_idx);
@@ -730,7 +730,7 @@
       // });
 
       // maybe enough
-      video.currentTime = mediaTime + 0.01;
+      video.currentTime = mediaTime + 0.002;
       onSeekEnd();
     }
 
