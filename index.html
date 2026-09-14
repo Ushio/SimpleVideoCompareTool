@@ -612,8 +612,10 @@
 
       const videoL = document.getElementById(image_L_idx);
       const videoR = document.getElementById(image_R_idx);
+
+      const rSpeedCorrection = videoR.duration / videoL.duration;
       videoL.playbackRate = rate;
-      videoR.playbackRate = rate;
+      videoR.playbackRate = rate * rSpeedCorrection;
     }
 
     function playSync()
@@ -749,11 +751,13 @@
       busyCounter += 2;
       updateUI();
 
+      const rSpeedCorrection = videoR.duration / videoL.duration;
+
       // console.log( "currentFrame: " + currentFrame);
       // console.log( "nextFrame   : " + nextFrame);
       // console.log( "curT        : " + videoL.currentTime);
       // console.log( "nextT       : " + nextFrame * deltaTime);
-      video_seek( videoR, nextFrame * deltaTime, () =>{ 
+      video_seek( videoR, nextFrame * deltaTime * rSpeedCorrection, () =>{ 
         const slider = document.getElementById("seekbar");
         slider.max = Math.round(duration / deltaTime) - 1;
         slider.value = nextFrame;
@@ -776,11 +780,13 @@
       busyCounter += 2;
       updateUI();
 
+      const rSpeedCorrection = videoR.duration / videoL.duration;
+
       // console.log( "currentFrame: " + currentFrame);
       // console.log( "nextFrame   : " + nextFrame);
       // console.log( "curT        : " + videoL.currentTime);
       // console.log( "nextT       : " + nextFrame * deltaTime);
-      video_seek( videoR, nextFrame * deltaTime, () =>{ 
+      video_seek( videoR, nextFrame * deltaTime * rSpeedCorrection, () =>{ 
         const slider = document.getElementById("seekbar");
         slider.max = Math.round(duration / deltaTime) - 1;
         slider.value = nextFrame;
@@ -1127,7 +1133,9 @@
       // });
       
       video_seek( videoL, deltaTime * value, () => { });
-      video_seek( videoR, deltaTime * value, () => { });
+      
+      const rSpeedCorrection = videoR.duration / videoL.duration;
+      video_seek( videoR, deltaTime * value * rSpeedCorrection, () => { });
     }
     var selector_label_L = "#BeforeLabel";
     var selector_label_R = "#slider";
